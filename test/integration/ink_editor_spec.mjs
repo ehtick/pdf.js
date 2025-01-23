@@ -1075,4 +1075,111 @@ describe("Ink Editor", () => {
       );
     });
   });
+
+  describe("Page position should remain unchanged after drawing", () => {
+    let pages;
+
+    beforeAll(async () => {
+      pages = await loadAndWait("tracemonkey.pdf", ".annotationEditorLayer");
+    });
+
+    afterAll(async () => {
+      await closePages(pages);
+    });
+
+    it("must check that the page position remains the same after drawing", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          const pageInitialPosition = await getRect(
+            page,
+            ".page[data-page-number='1']"
+          );
+
+          await switchToInk(page);
+
+          const editorLayerRect = await getRect(page, ".annotationEditorLayer");
+          const drawStartX = editorLayerRect.x + 100;
+          const drawStartY = editorLayerRect.y + 100;
+
+          const clickHandle = await waitForPointerUp(page);
+          await page.mouse.move(drawStartX, drawStartY);
+          await page.mouse.down();
+          await page.mouse.move(drawStartX + 50, drawStartY + 50);
+          await page.mouse.up();
+          await awaitPromise(clickHandle);
+          await commit(page);
+
+          const pageFinalPosition = await getRect(
+            page,
+            ".page[data-page-number='1']"
+          );
+
+          expect(pageInitialPosition.x)
+            .withContext(`In ${browserName}`)
+            .toEqual(pageFinalPosition.x);
+
+          expect(pageInitialPosition.y)
+            .withContext(`In ${browserName}`)
+            .toEqual(pageFinalPosition.y);
+        })
+      );
+    });
+  });
+});
+
+describe("The pen-drawn shape must maintain correct curvature regardless of the page it is drawn on or whether the curve's endpoint lies within or beyond the page boundaries", () => {
+  let pages;
+
+  beforeAll(async () => {
+    pages = await loadAndWait("tracemonkey.pdf", ".annotationEditorLayer");
+  });
+
+  afterAll(async () => {
+    await closePages(pages);
+  });
+
+  const getCurveOnPage = async ({ pageNumber = 1, page }) => {
+    const clickHandle = await waitForPointerUp(page);
+    const pageSelector = `.page[data-page-number = "${pageNumber}"]`;
+    await scrollIntoView(page, pageSelector);
+    await page.waitForSelector(pageSelector);
+    const rect = await getRect(page, `${pageSelector} .annotationEditorLayer`);
+    const x = rect.x + 100;
+    const y = rect.y + 200;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    // Create a reference curve on first page.
+    await page.mouse.move(x - 100, y);
+    if (page !== 1) {
+      // Add a move to create a curve that extends beyond the page boundary.
+      await page.mouse.move(x - 200, y);
+    }
+    await page.mouse.up();
+    await awaitPromise(clickHandle);
+    const d = await page.$eval(
+      `${pageSelector} .canvasWrapper svg.draw path[d]:not([d=""])`,
+      el => el.getAttribute("d")
+    );
+    return d;
+  };
+
+  it("must retain correct curvature regardless of the page or the curve's endpoint location", async () => {
+    await Promise.all(
+      pages.map(async ([browserName, page]) => {
+        await switchToInk(page);
+
+        // Creating a reference curve on the first page with end
+        // within the page boundaries.
+        const d1 = await getCurveOnPage({ pageNumber: 1, page });
+
+        // Creating a curve on the second page with end
+        // beyond the page boundaries.
+        const d2 = await getCurveOnPage({ pageNumber: 2, page });
+
+        // Expect that the endpoint beyond the boundaries is ignored,
+        // ensuring both curves have the same shape on both pages.
+        expect(d1).withContext(`In ${browserName}`).toEqual(d2);
+      })
+    );
+  });
 });
