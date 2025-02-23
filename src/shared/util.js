@@ -28,8 +28,6 @@ const isNodeJS =
 const IDENTITY_MATRIX = [1, 0, 0, 1, 0, 0];
 const FONT_IDENTITY_MATRIX = [0.001, 0, 0, 0.001, 0, 0];
 
-const MAX_IMAGE_SIZE_TO_CACHE = 10e6; // Ten megabytes.
-
 // Represent the percentage of the height of a single-line field over
 // the font size. Acrobat seems to use this value.
 const LINE_FACTOR = 1.35;
@@ -78,6 +76,7 @@ const AnnotationEditorType = {
   HIGHLIGHT: 9,
   STAMP: 13,
   INK: 15,
+  SIGNATURE: 101,
 };
 
 const AnnotationEditorParamsType = {
@@ -413,35 +412,28 @@ function createValidAbsoluteUrl(url, baseUrl = null, options = null) {
   if (!url) {
     return null;
   }
-  try {
-    if (options && typeof url === "string") {
-      // Let URLs beginning with "www." default to using the "http://" protocol.
-      if (options.addDefaultProtocol && url.startsWith("www.")) {
-        const dots = url.match(/\./g);
-        // Avoid accidentally matching a *relative* URL pointing to a file named
-        // e.g. "www.pdf" or similar.
-        if (dots?.length >= 2) {
-          url = `http://${url}`;
-        }
-      }
-
-      // According to ISO 32000-1:2008, section 12.6.4.7, URIs should be encoded
-      // in 7-bit ASCII. Some bad PDFs use UTF-8 encoding; see bug 1122280.
-      if (options.tryConvertEncoding) {
-        try {
-          url = stringToUTF8String(url);
-        } catch {}
+  if (options && typeof url === "string") {
+    // Let URLs beginning with "www." default to using the "http://" protocol.
+    if (options.addDefaultProtocol && url.startsWith("www.")) {
+      const dots = url.match(/\./g);
+      // Avoid accidentally matching a *relative* URL pointing to a file named
+      // e.g. "www.pdf" or similar.
+      if (dots?.length >= 2) {
+        url = `http://${url}`;
       }
     }
 
-    const absoluteUrl = baseUrl ? new URL(url, baseUrl) : new URL(url);
-    if (_isValidProtocol(absoluteUrl)) {
-      return absoluteUrl;
+    // According to ISO 32000-1:2008, section 12.6.4.7, URIs should be encoded
+    // in 7-bit ASCII. Some bad PDFs use UTF-8 encoding; see bug 1122280.
+    if (options.tryConvertEncoding) {
+      try {
+        url = stringToUTF8String(url);
+      } catch {}
     }
-  } catch {
-    /* `new URL()` will throw on incorrect data. */
   }
-  return null;
+
+  const absoluteUrl = baseUrl ? URL.parse(url, baseUrl) : URL.parse(url);
+  return _isValidProtocol(absoluteUrl) ? absoluteUrl : null;
 }
 
 function shadow(obj, prop, value, nonSerializable = false) {
@@ -633,18 +625,24 @@ class FeatureTest {
     if (
       (typeof PDFJSDev !== "undefined" && PDFJSDev.test("MOZCENTRAL")) ||
       (typeof navigator !== "undefined" &&
-        typeof navigator?.platform === "string")
+        typeof navigator?.platform === "string" &&
+        typeof navigator?.userAgent === "string")
     ) {
+      const { platform, userAgent } = navigator;
+
       return shadow(this, "platform", {
-        isMac: navigator.platform.includes("Mac"),
-        isWindows: navigator.platform.includes("Win"),
+        isAndroid: userAgent.includes("Android"),
+        isLinux: platform.includes("Linux"),
+        isMac: platform.includes("Mac"),
+        isWindows: platform.includes("Win"),
         isFirefox:
           (typeof PDFJSDev !== "undefined" && PDFJSDev.test("MOZCENTRAL")) ||
-          (typeof navigator?.userAgent === "string" &&
-            navigator.userAgent.includes("Firefox")),
+          userAgent.includes("Firefox"),
       });
     }
     return shadow(this, "platform", {
+      isAndroid: false,
+      isLinux: false,
       isMac: false,
       isWindows: false,
       isFirefox: false,
@@ -1155,7 +1153,6 @@ export {
   isNodeJS,
   LINE_DESCENT_FACTOR,
   LINE_FACTOR,
-  MAX_IMAGE_SIZE_TO_CACHE,
   normalizeUnicode,
   objectFromMap,
   objectSize,

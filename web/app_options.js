@@ -195,6 +195,16 @@ const defaultOptions = {
     value: true,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE + OptionKind.EVENT_DISPATCH,
   },
+  enableAutoLinking: {
+    /** @type {boolean} */
+    value: typeof PDFJSDev === "undefined" || PDFJSDev.test("MOZCENTRAL"),
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
+  },
+  enableDetailCanvas: {
+    /** @type {boolean} */
+    value: true,
+    kind: OptionKind.VIEWER,
+  },
   enableGuessAltText: {
     /** @type {boolean} */
     value: true,
@@ -226,6 +236,11 @@ const defaultOptions = {
   enableScripting: {
     /** @type {boolean} */
     value: typeof PDFJSDev === "undefined" || !PDFJSDev.test("CHROME"),
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
+  },
+  enableSignatureEditor: {
+    /** @type {boolean} */
+    value: typeof PDFJSDev === "undefined" || PDFJSDev.test("TESTING"),
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
   },
   enableUpdatedAddImage: {
@@ -434,12 +449,9 @@ const defaultOptions = {
   wasmUrl: {
     /** @type {string} */
     value:
-      // eslint-disable-next-line no-nested-ternary
-      typeof PDFJSDev === "undefined"
-        ? "../external/openjpeg/"
-        : PDFJSDev.test("MOZCENTRAL")
-          ? "resource://pdf.js/web/wasm/"
-          : "../web/wasm/",
+      typeof PDFJSDev !== "undefined" && PDFJSDev.test("MOZCENTRAL")
+        ? "resource://pdf.js/web/wasm/"
+        : "../web/wasm/",
     kind: OptionKind.API,
   },
 

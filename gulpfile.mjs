@@ -80,7 +80,7 @@ const config = JSON.parse(fs.readFileSync(CONFIG_FILE).toString());
 
 const ENV_TARGETS = [
   "last 2 versions",
-  "Chrome >= 103",
+  "Chrome >= 110",
   "Firefox ESR",
   "Safari >= 16.4",
   "Node >= 20",
@@ -217,6 +217,7 @@ function createWebpackAlias(defines) {
     "web-preferences": "",
     "web-print_service": "",
     "web-secondary_toolbar": "web/secondary_toolbar.js",
+    "web-signature_manager": "web/signature_manager.js",
     "web-toolbar": "web/toolbar.js",
   };
 
@@ -639,8 +640,7 @@ function createStandardFontBundle() {
     [
       "external/standard_fonts/*.pfb",
       "external/standard_fonts/*.ttf",
-      "external/standard_fonts/LICENSE_FOXIT",
-      "external/standard_fonts/LICENSE_LIBERATION",
+      "external/standard_fonts/LICENSE_*",
     ],
     {
       base: "external/standard_fonts",
@@ -650,10 +650,19 @@ function createStandardFontBundle() {
 }
 
 function createWasmBundle() {
-  return gulp.src(["external/openjpeg/openjpeg.wasm"], {
-    base: "external/openjpeg",
-    encoding: false,
-  });
+  return ordered([
+    gulp.src(
+      [
+        "external/openjpeg/*.wasm",
+        "external/openjpeg/openjpeg_nowasm_fallback.js",
+        "external/openjpeg/LICENSE_*",
+      ],
+      {
+        base: "external/openjpeg",
+        encoding: false,
+      }
+    ),
+  ]);
 }
 
 function checkFile(filePath) {
@@ -1950,20 +1959,25 @@ function createBaseline(done) {
 
 gulp.task(
   "unittestcli",
-  gulp.series(setTestEnv, "lib-legacy", function runUnitTestCli(done) {
-    const options = [
-      "node_modules/jasmine/bin/jasmine",
-      "JASMINE_CONFIG_PATH=test/unit/clitests.json",
-    ];
-    const jasmineProcess = startNode(options, { stdio: "inherit" });
-    jasmineProcess.on("close", function (code) {
-      if (code !== 0) {
-        done(new Error("Unit tests failed."));
-        return;
-      }
-      done();
-    });
-  })
+  gulp.series(
+    setTestEnv,
+    "generic-legacy",
+    "lib-legacy",
+    function runUnitTestCli(done) {
+      const options = [
+        "node_modules/jasmine/bin/jasmine",
+        "JASMINE_CONFIG_PATH=test/unit/clitests.json",
+      ];
+      const jasmineProcess = startNode(options, { stdio: "inherit" });
+      jasmineProcess.on("close", function (code) {
+        if (code !== 0) {
+          done(new Error("Unit tests failed."));
+          return;
+        }
+        done();
+      });
+    }
+  )
 );
 
 gulp.task("lint", function (done) {
@@ -2077,6 +2091,15 @@ gulp.task(
   )
 );
 
+gulp.task("dev-wasm", function () {
+  const VIEWER_WASM_OUTPUT = "web/wasm/";
+
+  fs.rmSync(VIEWER_WASM_OUTPUT, { recursive: true, force: true });
+  fs.mkdirSync(VIEWER_WASM_OUTPUT, { recursive: true });
+
+  return createWasmBundle().pipe(gulp.dest(VIEWER_WASM_OUTPUT));
+});
+
 gulp.task(
   "dev-sandbox",
   gulp.series(
@@ -2110,6 +2133,13 @@ gulp.task(
         "l10n/**/*.ftl",
         { ignoreInitial: false },
         gulp.series("locale")
+      );
+    },
+    function watchWasm() {
+      gulp.watch(
+        "external/openjpeg/*",
+        { ignoreInitial: false },
+        gulp.series("dev-wasm")
       );
     },
     function watchDevSandbox() {
@@ -2267,7 +2297,7 @@ function packageJson() {
     bugs: DIST_BUGS_URL,
     license: DIST_LICENSE,
     optionalDependencies: {
-      "@napi-rs/canvas": "^0.1.65",
+      "@napi-rs/canvas": "^0.1.67",
     },
     browser: {
       canvas: false,
@@ -2328,6 +2358,12 @@ gulp.task(
           .pipe(gulp.dest(DIST_DIR)),
         gulp
           .src(GENERIC_DIR + "web/standard_fonts/**/*", {
+            base: GENERIC_DIR + "web",
+            encoding: false,
+          })
+          .pipe(gulp.dest(DIST_DIR)),
+        gulp
+          .src(GENERIC_DIR + "web/wasm/**/*", {
             base: GENERIC_DIR + "web",
             encoding: false,
           })

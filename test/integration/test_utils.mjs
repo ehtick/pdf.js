@@ -17,10 +17,14 @@ import os from "os";
 
 const isMac = os.platform() === "darwin";
 
-function loadAndWait(filename, selector, zoom, setups, options) {
+function loadAndWait(filename, selector, zoom, setups, options, viewport) {
   return Promise.all(
     global.integrationSessions.map(async session => {
       const page = await session.browser.newPage();
+
+      if (viewport) {
+        await page.setViewport(viewport);
+      }
 
       // In order to avoid errors because of checks which depend on
       // a locale.
@@ -197,6 +201,12 @@ async function clearInput(page, selector, waitForInputEvent = false) {
 async function waitAndClick(page, selector, clickOptions = {}) {
   await page.waitForSelector(selector, { visible: true });
   await page.click(selector, clickOptions);
+}
+
+function waitForPointerUp(page) {
+  return createPromise(page, resolve => {
+    window.addEventListener("pointerup", resolve, { once: true });
+  });
 }
 
 function getSelector(id) {
@@ -560,8 +570,12 @@ function waitForAnnotationModeChanged(page) {
 
 function waitForPageRendered(page) {
   return createPromise(page, resolve => {
-    window.PDFViewerApplication.eventBus.on("pagerendered", resolve, {
-      once: true,
+    const { eventBus } = window.PDFViewerApplication;
+    eventBus.on("pagerendered", function handler(e) {
+      if (!e.isDetailView) {
+        resolve();
+        eventBus.off("pagerendered", handler);
+      }
     });
   });
 }
@@ -835,6 +849,34 @@ async function cleanupEditing(pages, switcher) {
   }
 }
 
+async function getXY(page, selector) {
+  const rect = await getRect(page, selector);
+  return `${rect.x}::${rect.y}`;
+}
+
+function waitForPositionChange(page, selector, xy) {
+  return page.waitForFunction(
+    (sel, currentXY) => {
+      const bbox = document.querySelector(sel).getBoundingClientRect();
+      return `${bbox.x}::${bbox.y}` !== currentXY;
+    },
+    {},
+    selector,
+    xy
+  );
+}
+
+async function moveEditor(page, selector, n, pressKey) {
+  let xy = await getXY(page, selector);
+  for (let i = 0; i < n; i++) {
+    const handle = await waitForEditorMovedInDOM(page);
+    await pressKey();
+    await awaitPromise(handle);
+    await waitForPositionChange(page, selector, xy);
+    xy = await getXY(page, selector);
+  }
+}
+
 export {
   applyFunctionToEditor,
   awaitPromise,
@@ -879,6 +921,7 @@ export {
   kbUndo,
   loadAndWait,
   mockClipboard,
+  moveEditor,
   paste,
   pasteFromClipboard,
   scrollIntoView,
@@ -895,6 +938,7 @@ export {
   waitForEvent,
   waitForNoElement,
   waitForPageRendered,
+  waitForPointerUp,
   waitForSandboxTrip,
   waitForSelectedEditor,
   waitForSerialized,

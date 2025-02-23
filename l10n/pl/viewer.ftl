@@ -516,3 +516,27 @@ pdfjs-editor-undo-bar-undo-button-label = Cofnij
 pdfjs-editor-undo-bar-close-button =
     .title = Zamknij
 pdfjs-editor-undo-bar-close-button-label = Zamknij
+
+## Add a signature dialog
+
+
+## Tab names
+
+
+## Tab panels
+
+
+## Controls
+
+
+## Dialog buttons
+
+
+## Main menu for adding/removing signatures
+
+
+## Editor toolbar
+
+
+## Edit signature description dialog
+

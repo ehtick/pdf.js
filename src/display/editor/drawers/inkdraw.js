@@ -318,6 +318,10 @@ class InkDrawOutline extends Outline {
     this.#computeBbox();
   }
 
+  get thickness() {
+    return this.#thickness;
+  }
+
   setLastElement(element) {
     this.#lines.push(element);
     return {
@@ -344,7 +348,7 @@ class InkDrawOutline extends Outline {
         buffer.push("Z");
         continue;
       }
-      if (line.length === 12) {
+      if (line.length === 12 && isNaN(line[6])) {
         buffer.push(
           `L${Outline.svgRound(line[10])} ${Outline.svgRound(line[11])}`
         );
@@ -548,7 +552,7 @@ class InkDrawOutline extends Outline {
       });
     }
 
-    const outlines = new InkDrawOutline();
+    const outlines = new this.prototype.constructor();
     outlines.build(
       newLines,
       pageWidth,

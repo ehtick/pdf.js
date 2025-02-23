@@ -75,9 +75,6 @@ import { getFontSubstitution } from "./font_substitutions.js";
 import { getGlyphsUnicode } from "./glyphlist.js";
 import { getMetrics } from "./metrics.js";
 import { getUnicodeForGlyph } from "./unicode.js";
-import { ImageResizer } from "./image_resizer.js";
-import { JpegStream } from "./jpeg_stream.js";
-import { JpxImage } from "./jpx.js";
 import { MurmurHash3_64 } from "../shared/murmurhash3.js";
 import { OperatorList } from "./operator_list.js";
 import { PDFImage } from "./image.js";
@@ -93,6 +90,8 @@ const DefaultPartialEvaluatorOptions = Object.freeze({
   canvasMaxAreaInBytes: -1,
   fontExtraProperties: false,
   useSystemFonts: true,
+  useWasm: true,
+  useWorkerFetch: true,
   cMapUrl: null,
   standardFontDataUrl: null,
   wasmUrl: null,
@@ -240,13 +239,6 @@ class PartialEvaluator {
 
     this._regionalImageCache = new RegionalImageCache();
     this._fetchBuiltInCMapBound = this.fetchBuiltInCMap.bind(this);
-
-    ImageResizer.setOptions(this.options);
-    JpegStream.setOptions(this.options);
-    JpxImage.setOptions({
-      wasmUrl: this.options.wasmUrl,
-      handler,
-    });
   }
 
   /**
@@ -394,15 +386,18 @@ class PartialEvaluator {
     }
     let data;
 
-    if (this.options.cMapUrl !== null) {
+    if (this.options.useWorkerFetch) {
       // Only compressed CMaps are (currently) supported here.
-      const cMapData = await fetchBinaryData(
-        `${this.options.cMapUrl}${name}.bcmap`
-      );
-      data = { cMapData, isCompressed: true };
+      data = {
+        cMapData: await fetchBinaryData(`${this.options.cMapUrl}${name}.bcmap`),
+        isCompressed: true,
+      };
     } else {
       // Get the data on the main-thread instead.
-      data = await this.handler.sendWithPromise("FetchBuiltInCMap", { name });
+      data = await this.handler.sendWithPromise("FetchBinaryData", {
+        type: "cMapReaderFactory",
+        name,
+      });
     }
     // Cache the CMap data, to avoid fetching it repeatedly.
     this.builtInCMapCache.set(name, data);
@@ -431,13 +426,14 @@ class PartialEvaluator {
     let data;
 
     try {
-      if (this.options.standardFontDataUrl !== null) {
+      if (this.options.useWorkerFetch) {
         data = await fetchBinaryData(
           `${this.options.standardFontDataUrl}${filename}`
         );
       } else {
         // Get the data on the main-thread instead.
-        data = await this.handler.sendWithPromise("FetchStandardFontData", {
+        data = await this.handler.sendWithPromise("FetchBinaryData", {
+          type: "standardFontDataFactory",
           filename,
         });
       }
@@ -1237,15 +1233,13 @@ class PartialEvaluator {
     fallbackFontDict = null,
     cssFontInfo = null
   ) {
-    // eslint-disable-next-line arrow-body-style
-    const errorFont = async () => {
-      return new TranslatedFont({
+    const errorFont = async () =>
+      new TranslatedFont({
         loadedName: "g_font_error",
         font: new ErrorFont(`Font "${fontName}" is not available.`),
         dict: font,
         evaluatorOptions: this.options,
       });
-    };
 
     let fontRef;
     if (font) {

@@ -122,6 +122,7 @@
 !issue10542_reduced.pdf
 !issue10665_reduced.pdf
 !issue11016_reduced.pdf
+!issue19532.pdf
 !issue15516_reduced.pdf
 !issue11045.pdf
 !bug1057544.pdf
@@ -276,6 +277,7 @@
 !pr6531_1.pdf
 !pr6531_2.pdf
 !pr7352.pdf
+!pr19449.pdf
 !bug900822.pdf
 !bug1392647.pdf
 !issue918.pdf
@@ -532,6 +534,7 @@
 !transparent.pdf
 !issue19326.pdf
 !issue13931.pdf
+!issue19474.pdf
 !xobject-image.pdf
 !issue15441.pdf
 !issue6605.pdf
@@ -558,6 +561,8 @@
 !poppler-85140-0.pdf
 !issue15012.pdf
 !issue19176.pdf
+!bug1947248_text.pdf
+!bug1947248_forms.pdf
 !issue15150.pdf
 !poppler-395-0-fuzzed.pdf
 !issue14165.pdf
@@ -609,6 +614,7 @@
 !issue16021.pdf
 !bug1770750.pdf
 !issue16063.pdf
+!issue19389.pdf
 !issue16067.pdf
 !bug1820909.1.pdf
 !issue16221.pdf
@@ -696,3 +702,8 @@
 !issue18911.pdf
 !issue19207.pdf
 !issue19239.pdf
+!issue19360.pdf
+!bug1019475_1.pdf
+!bug1019475_2.pdf
+!issue19505.pdf
+!colors.pdf

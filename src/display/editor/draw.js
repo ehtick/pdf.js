@@ -30,7 +30,9 @@ class DrawingOptions {
       return;
     }
     for (const [name, value] of Object.entries(properties)) {
-      this.updateProperty(name, value);
+      if (!name.startsWith("_")) {
+        this.updateProperty(name, value);
+      }
     }
   }
 
@@ -91,6 +93,10 @@ class DrawingEditor extends AnnotationEditor {
     super(params);
     this.#mustBeCommitted = params.mustBeCommitted || false;
 
+    this._addOutlines(params);
+  }
+
+  _addOutlines(params) {
     if (params.drawOutlines) {
       this.#createDrawOutlines(params);
       this.#addToDrawLayer();
@@ -274,9 +280,9 @@ class DrawingEditor extends AnnotationEditor {
   }
 
   /** @inheritdoc */
-  _onTranslating(x, y) {
+  _onTranslating(_x, _y) {
     this.parent?.drawLayer.updateProperties(this._drawId, {
-      bbox: this.#rotateBox(x, y),
+      bbox: this.#rotateBox(),
     });
   }
 
@@ -834,7 +840,7 @@ class DrawingEditor extends AnnotationEditor {
     parent.toggleDrawing(true);
     this._cleanup(false);
 
-    if (event) {
+    if (event?.target === parent.div) {
       parent.drawLayer.updateProperties(
         this._currentDrawId,
         DrawingEditor.#currentDraw.end(event.offsetX, event.offsetY)

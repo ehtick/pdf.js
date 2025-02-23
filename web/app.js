@@ -89,6 +89,7 @@ import { PDFThumbnailViewer } from "web-pdf_thumbnail_viewer";
 import { PDFViewer } from "./pdf_viewer.js";
 import { Preferences } from "web-preferences";
 import { SecondaryToolbar } from "web-secondary_toolbar";
+import { SignatureManager } from "web-signature_manager";
 import { Toolbar } from "web-toolbar";
 import { ViewHistory } from "./view_history.js";
 
@@ -352,7 +353,9 @@ const PDFViewerApplication = {
     // Set some specific preferences for tests.
     if (typeof PDFJSDev !== "undefined" && PDFJSDev.test("TESTING")) {
       Object.assign(opts, {
+        docBaseUrl: x => x,
         enableAltText: x => x === "true",
+        enableAutoLinking: x => x === "true",
         enableFakeMLManager: x => x === "true",
         enableGuessAltText: x => x === "true",
         enableUpdatedAddImage: x => x === "true",
@@ -458,6 +461,23 @@ const PDFViewerApplication = {
       this.editorUndoBar = new EditorUndoBar(appConfig.editorUndoBar, eventBus);
     }
 
+    const signatureManager =
+      AppOptions.get("enableSignatureEditor") && appConfig.addSignatureDialog
+        ? new SignatureManager(
+            appConfig.addSignatureDialog,
+            appConfig.editSignatureDialog,
+            appConfig.annotationEditorParams?.editorSignatureAddSignature ||
+              null,
+            this.overlayManager,
+            l10n,
+            externalServices.createSignatureStorage(
+              eventBus,
+              this._globalAbortController.signal
+            ),
+            eventBus
+          )
+        : null;
+
     const enableHWA = AppOptions.get("enableHWA");
     const pdfViewer = new PDFViewer({
       container,
@@ -467,6 +487,7 @@ const PDFViewerApplication = {
       linkService: pdfLinkService,
       downloadManager,
       altTextManager,
+      signatureManager,
       editorUndoBar: this.editorUndoBar,
       findController,
       scriptingManager:
@@ -486,12 +507,14 @@ const PDFViewerApplication = {
       imageResourcesPath: AppOptions.get("imageResourcesPath"),
       enablePrintAutoRotate: AppOptions.get("enablePrintAutoRotate"),
       maxCanvasPixels: AppOptions.get("maxCanvasPixels"),
+      enableDetailCanvas: AppOptions.get("enableDetailCanvas"),
       enablePermissions: AppOptions.get("enablePermissions"),
       pageColors,
       mlManager: this.mlManager,
       abortSignal: this._globalAbortController.signal,
       enableHWA,
       supportsPinchToZoom: this.supportsPinchToZoom,
+      enableAutoLinking: AppOptions.get("enableAutoLinking"),
     });
     this.pdfViewer = pdfViewer;
 
@@ -536,6 +559,10 @@ const PDFViewerApplication = {
           typeof AbortSignal.any === "function") &&
         annotationEditorMode !== AnnotationEditorType.DISABLE
       ) {
+        const editorSignatureButton = appConfig.toolbar?.editorSignatureButton;
+        if (editorSignatureButton && AppOptions.get("enableSignatureEditor")) {
+          editorSignatureButton.parentElement.hidden = false;
+        }
         this.annotationEditorParams = new AnnotationEditorParams(
           appConfig.annotationEditorParams,
           eventBus
@@ -2248,35 +2275,34 @@ if (typeof PDFJSDev === "undefined" || !PDFJSDev.test("MOZCENTRAL")) {
 }
 
 if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
-  const HOSTED_VIEWER_ORIGINS = [
+  const HOSTED_VIEWER_ORIGINS = new Set([
     "null",
     "http://mozilla.github.io",
     "https://mozilla.github.io",
-  ];
+  ]);
   // eslint-disable-next-line no-var
   var validateFileURL = function (file) {
     if (!file) {
       return;
     }
-    try {
-      const viewerOrigin = new URL(window.location.href).origin || "null";
-      if (HOSTED_VIEWER_ORIGINS.includes(viewerOrigin)) {
-        // Hosted or local viewer, allow for any file locations
-        return;
-      }
-      const fileOrigin = new URL(file, window.location.href).origin;
-      // Removing of the following line will not guarantee that the viewer will
-      // start accepting URLs from foreign origin -- CORS headers on the remote
-      // server must be properly configured.
-      if (fileOrigin !== viewerOrigin) {
-        throw new Error("file origin does not match viewer's");
-      }
-    } catch (ex) {
-      PDFViewerApplication._documentError("pdfjs-loading-error", {
-        message: ex.message,
-      });
-      throw ex;
+    const viewerOrigin = URL.parse(window.location)?.origin || "null";
+    if (HOSTED_VIEWER_ORIGINS.has(viewerOrigin)) {
+      // Hosted or local viewer, allow for any file locations
+      return;
     }
+    const fileOrigin = URL.parse(file, window.location)?.origin;
+    if (fileOrigin === viewerOrigin) {
+      return;
+    }
+    const ex = new Error("file origin does not match viewer's");
+
+    PDFViewerApplication._documentError("pdfjs-loading-error", {
+      message: ex.message,
+    });
+    // Removing of the following line will not guarantee that the viewer will
+    // start accepting URLs from foreign origin -- CORS headers on the remote
+    // server must be properly configured.
+    throw ex;
   };
 
   // eslint-disable-next-line no-var
@@ -2306,7 +2332,7 @@ function onPageRender({ pageNumber }) {
   }
 }
 
-function onPageRendered({ pageNumber, error }) {
+function onPageRendered({ pageNumber, isDetailView, error }) {
   // If the page is still visible when it has finished rendering,
   // ensure that the page number input loading indicator is hidden.
   if (pageNumber === this.page) {
@@ -2314,7 +2340,7 @@ function onPageRendered({ pageNumber, error }) {
   }
 
   // Use the rendered page to set the corresponding thumbnail image.
-  if (this.pdfSidebar?.visibleView === SidebarView.THUMBS) {
+  if (!isDetailView && this.pdfSidebar?.visibleView === SidebarView.THUMBS) {
     const pageView = this.pdfViewer.getPageView(/* index = */ pageNumber - 1);
     const thumbnailView = this.pdfThumbnailViewer?.getThumbnail(
       /* index = */ pageNumber - 1

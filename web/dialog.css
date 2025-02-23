@@ -20,8 +20,6 @@
   --text-primary-color: #15141a;
   --text-secondary-color: #5b5b66;
   --hover-filter: brightness(0.9);
-  --focus-ring-color: #0060df;
-  --focus-ring-outline: 2px solid var(--focus-ring-color);
   --link-fg-color: #0060df;
   --link-hover-fg-color: #0250bb;
   --separator-color: #f0f0f4;
@@ -49,13 +47,15 @@
   --button-primary-hover-fg-color: var(--button-primary-fg-color);
   --button-primary-hover-border-color: var(--button-primary-hover-bg-color);
 
+  --button-disabled-bg-color: color-mix(in srgb, currentcolor, transparent 60%);
+  --button-disabled-fg-color: var(--button-disabled-bg-color);
+
   @media (prefers-color-scheme: dark) {
     --dialog-bg-color: #1c1b22;
     --dialog-border-color: #1c1b22;
     --dialog-shadow: 0 2px 14px 0 #15141a;
     --text-primary-color: #fbfbfe;
     --text-secondary-color: #cfcfd8;
-    --focus-ring-color: #0df;
     --hover-filter: brightness(1.4);
     --link-fg-color: #0df;
     --link-hover-fg-color: #80ebff;
@@ -79,7 +79,6 @@
     --text-primary-color: CanvasText;
     --text-secondary-color: CanvasText;
     --hover-filter: none;
-    --focus-ring-color: ButtonBorder;
     --link-fg-color: LinkText;
     --link-hover-fg-color: LinkText;
     --separator-color: CanvasText;
@@ -103,6 +102,9 @@
     --button-primary-fg-color: ButtonFace;
     --button-primary-hover-bg-color: AccentColor;
     --button-primary-hover-fg-color: AccentColorText;
+
+    --button-disabled-bg-color: GrayText;
+    --button-disabled-fg-color: ButtonFace;
   }
 
   font: message-box;
@@ -199,7 +201,7 @@
       }
     }
 
-    button:not(:is(.toggle-button, .closeButton)) {
+    button:not(:is(.toggle-button, .closeButton, .clearInputButton)) {
       border-radius: 4px;
       border: 1px solid;
       font: menu;
@@ -211,6 +213,10 @@
       &:hover {
         cursor: pointer;
         filter: var(--hover-filter);
+      }
+
+      > span {
+        color: inherit;
       }
 
       &.secondaryButton {
@@ -236,6 +242,13 @@
           background-color: var(--button-primary-hover-bg-color);
           border-color: var(--button-primary-hover-border-color);
         }
+      }
+
+      &:disabled {
+        color: var(--button-disabled-fg-color) !important;
+        background-color: var(--button-disabled-bg-color);
+        border-color: var(--button-disabled-bg-color);
+        pointer-events: none;
       }
     }
 
