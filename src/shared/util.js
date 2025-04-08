@@ -25,7 +25,6 @@ const isNodeJS =
   !process.versions.nw &&
   !(process.versions.electron && process.type && process.type !== "browser");
 
-const IDENTITY_MATRIX = [1, 0, 0, 1, 0, 0];
 const FONT_IDENTITY_MATRIX = [0.001, 0, 0, 0.001, 0, 0];
 
 // Represent the percentage of the height of a single-line field over
@@ -576,16 +575,6 @@ function string32(value) {
 
 function objectSize(obj) {
   return Object.keys(obj).length;
-}
-
-// Ensure that the returned Object has a `null` prototype; hence why
-// `Object.fromEntries(...)` is not used.
-function objectFromMap(map) {
-  const obj = Object.create(null);
-  for (const [key, value] of map) {
-    obj[key] = value;
-  }
-  return obj;
 }
 
 // Checks the endianness of the platform.
@@ -1303,7 +1292,6 @@ export {
   getUuid,
   getVerbosityLevel,
   hexNumbers,
-  IDENTITY_MATRIX,
   ImageKind,
   info,
   InvalidPDFException,
@@ -1313,7 +1301,6 @@ export {
   LINE_FACTOR,
   MathClamp,
   normalizeUnicode,
-  objectFromMap,
   objectSize,
   OPS,
   PageActionEventType,
