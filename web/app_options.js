@@ -168,6 +168,11 @@ const defaultOptions = {
     value: 2,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
   },
+  capCanvasAreaFactor: {
+    /** @type {number} */
+    value: 200,
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
+  },
   cursorToolOnLoad: {
     /** @type {number} */
     value: 0,
@@ -300,6 +305,11 @@ const defaultOptions = {
   maxCanvasPixels: {
     /** @type {number} */
     value: 2 ** 25,
+    kind: OptionKind.VIEWER,
+  },
+  minDurationToUpdateCanvas: {
+    /** @type {number} */
+    value: 500, // ms
     kind: OptionKind.VIEWER,
   },
   forcePageColors: {
