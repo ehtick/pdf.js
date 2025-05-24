@@ -2860,6 +2860,15 @@
     "type": "eq"
   },
   {
+    "id": "issue19954",
+    "file": "pdfs/issue19954.pdf",
+    "md5": "9742309bb321691b53b96069dfc1099b",
+    "link": true,
+    "rounds": 1,
+    "lastPage": 1,
+    "type": "text"
+  },
+  {
     "id": "IndexedCS_negative_and_high",
     "file": "pdfs/IndexedCS_negative_and_high.pdf",
     "md5": "3bbf5e6f1cf49acb075fabb0726b5fe4",
@@ -4130,6 +4139,14 @@
     "md5": "59d501ed1518d78ef6ee442cf824b0f6",
     "rounds": 1,
     "link": false,
+    "lastPage": 1,
+    "type": "eq"
+  },
+  {
+    "id": "issue19971",
+    "file": "pdfs/issue19971.pdf",
+    "md5": "2eb897b3ef3342bfc5ad31886e7cd1fe",
+    "rounds": 1,
     "lastPage": 1,
     "type": "eq"
   },
@@ -12093,5 +12110,35 @@
     "md5": "98b19e944339c01c10c503685eee3ad2",
     "rounds": 1,
     "type": "eq"
+  },
+  {
+    "id": "bug1963407",
+    "file": "pdfs/bug1963407.pdf",
+    "md5": "49d3d2dd42014d978af6e6ad814e5e64",
+    "rounds": 1,
+    "type": "eq",
+    "save": true,
+    "print": true,
+    "annotationStorage": {
+      "24R": {
+        "value": "Hello World"
+      }
+    }
+  },
+  {
+    "id": "issue19517",
+    "file": "pdfs/issue19517.pdf",
+    "md5": "2abe67c8b34522feb6b85d252dde9d3e",
+    "rounds": 1,
+    "type": "eq"
+  },
+  {
+    "id": "issue19753",
+    "file": "pdfs/issue19753.pdf",
+    "md5": "6b1fe0af506860002a9411f5f0d6437f",
+    "rounds": 1,
+    "type": "eq",
+    "forms": true,
+    "link": true
   }
 ]

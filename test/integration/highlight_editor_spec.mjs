@@ -41,11 +41,10 @@ import {
   waitForSerialized,
   waitForTimeout,
 } from "./test_utils.mjs";
-import { fileURLToPath } from "url";
 import fs from "fs";
 import path from "path";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const selectAll = selectEditors.bind(null, "highlight");
 
@@ -627,7 +626,7 @@ describe("Highlight Editor", () => {
           const { width: prevWidth } = await getRect(page, editorSelector);
 
           value = 24;
-          page.evaluate(val => {
+          await page.evaluate(val => {
             window.PDFViewerApplication.eventBus.dispatch(
               "switchannotationeditorparams",
               {
@@ -764,7 +763,7 @@ describe("Highlight Editor", () => {
 
           const { width: prevWidth } = await getRect(page, editorSelector);
 
-          page.evaluate(val => {
+          await page.evaluate(val => {
             window.PDFViewerApplication.eventBus.dispatch(
               "switchannotationeditorparams",
               {
